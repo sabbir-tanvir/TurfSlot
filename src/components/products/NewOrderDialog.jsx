@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { Loader2, Plus, Trash2, Search } from "lucide-react";
 
 export default function NewOrderDialog({ open, onOpenChange, products, onSaved }) {
@@ -51,7 +51,7 @@ export default function NewOrderDialog({ open, onOpenChange, products, onSaved }
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.Order.create({
+    await apiClient.entities.Order.create({
       customer_name: customer.name,
       customer_phone: customer.phone,
       items,
@@ -64,7 +64,7 @@ export default function NewOrderDialog({ open, onOpenChange, products, onSaved }
     for (const item of items) {
       const product = products.find((p) => p.id === item.product_id);
       if (product) {
-        await base44.entities.Product.update(item.product_id, {
+        await apiClient.entities.Product.update(item.product_id, {
           stock: Math.max(0, (product.stock || 0) - item.quantity),
         });
       }

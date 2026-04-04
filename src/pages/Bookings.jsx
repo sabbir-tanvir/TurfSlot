@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,11 @@ export default function Bookings() {
 
   const { data: bookings = [], isLoading: lb } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => base44.entities.Booking.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Booking.list("-created_date", 500),
   });
   const { data: turfs = [] } = useQuery({
     queryKey: ["turfs"],
-    queryFn: () => base44.entities.Turf.list(),
+    queryFn: () => apiClient.entities.Turf.list(),
   });
 
   const filtered = bookings.filter((b) => {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,11 +40,11 @@ export default function Payments() {
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["payments"],
-    queryFn: () => base44.entities.Payment.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Payment.list("-created_date", 500),
   });
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => base44.entities.Booking.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Booking.list("-created_date", 500),
   });
 
   const totalCompleted = payments.filter((p) => p.status === "completed").reduce((s, p) => s + (p.amount || 0), 0);
@@ -54,9 +54,9 @@ export default function Payments() {
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.Payment.create(form);
+    await apiClient.entities.Payment.create(form);
     if (form.booking_id && form.status === "completed") {
-      await base44.entities.Booking.update(form.booking_id, { payment_status: "paid", payment_method: form.method });
+      await apiClient.entities.Booking.update(form.booking_id, { payment_status: "paid", payment_method: form.method });
     }
     setSaving(false);
     setShowForm(false);

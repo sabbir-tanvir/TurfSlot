@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,11 +36,11 @@ export default function PublicBooking() {
 
   const { data: turfs = [] } = useQuery({
     queryKey: ["turfs"],
-    queryFn: () => base44.entities.Turf.list(),
+    queryFn: () => apiClient.entities.Turf.list(),
   });
   const { data: bookings = [] } = useQuery({
     queryKey: ["pub-bookings"],
-    queryFn: () => base44.entities.Booking.list("-created_date", 1000),
+    queryFn: () => apiClient.entities.Booking.list("-created_date", 1000),
   });
 
   const activeTurfs = turfs.filter((t) => t.status === "active");
@@ -67,7 +67,7 @@ export default function PublicBooking() {
 
   const handleBook = async () => {
     setSaving(true);
-    await base44.entities.Booking.create({
+    await apiClient.entities.Booking.create({
       turf_id: selectedTurf.id,
       turf_name: selectedTurf.name,
       customer_name: form.name,

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ export default function Customers() {
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => base44.entities.Booking.list("-created_date", 1000),
+    queryFn: () => apiClient.entities.Booking.list("-created_date", 1000),
   });
 
   const customers = useMemo(() => {

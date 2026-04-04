@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -14,7 +14,7 @@ export default function Turfs() {
 
   const { data: turfs = [], isLoading } = useQuery({
     queryKey: ["turfs"],
-    queryFn: () => base44.entities.Turf.list("-created_date"),
+    queryFn: () => apiClient.entities.Turf.list("-created_date"),
   });
 
   const handleEdit = (turf) => {

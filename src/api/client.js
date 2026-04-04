@@ -95,7 +95,7 @@ const integrations = {
   }
 };
 
-export const base44 = {
+export const apiClient = {
   auth,
   integrations,
   entities: {
@@ -107,3 +107,4 @@ export const base44 = {
     Payment: entityApi("Payment")
   }
 };
+

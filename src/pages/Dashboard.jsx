@@ -1,5 +1,5 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, CreditCard, MapPin, Users, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,15 +11,15 @@ import RecentBookings from "@/components/dashboard/RecentBookings";
 export default function Dashboard() {
   const { data: bookings = [], isLoading: lb } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => base44.entities.Booking.list("-created_date", 200),
+    queryFn: () => apiClient.entities.Booking.list("-created_date", 200),
   });
   const { data: payments = [], isLoading: lp } = useQuery({
     queryKey: ["payments"],
-    queryFn: () => base44.entities.Payment.list("-created_date", 200),
+    queryFn: () => apiClient.entities.Payment.list("-created_date", 200),
   });
   const { data: turfs = [], isLoading: lt } = useQuery({
     queryKey: ["turfs"],
-    queryFn: () => base44.entities.Turf.list(),
+    queryFn: () => apiClient.entities.Turf.list(),
   });
 
   const isLoading = lb || lp || lt;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +173,7 @@ export default function SalesPOS({ products }) {
     const invoiceNo = `INV-${Date.now().toString().slice(-6)}`;
     const date = format(new Date(), "dd MMM yyyy, hh:mm a");
 
-    await base44.entities.Order.create({
+    await apiClient.entities.Order.create({
       customer_name: customer.name,
       customer_phone: customer.phone,
       items,
@@ -187,7 +187,7 @@ export default function SalesPOS({ products }) {
     for (const item of items) {
       const product = products.find((p) => p.id === item.product_id);
       if (product) {
-        await base44.entities.Product.update(item.product_id, {
+        await apiClient.entities.Product.update(item.product_id, {
           stock: Math.max(0, (product.stock || 0) - item.quantity),
         });
       }

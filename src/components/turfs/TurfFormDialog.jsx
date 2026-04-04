@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
 
 const defaults = {
@@ -28,7 +28,7 @@ export default function TurfFormDialog({ open, onOpenChange, turf, onSaved }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await apiClient.integrations.Core.UploadFile({ file });
     set("image_url", file_url);
     setUploading(false);
   };
@@ -36,9 +36,9 @@ export default function TurfFormDialog({ open, onOpenChange, turf, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     if (isEdit) {
-      await base44.entities.Turf.update(turf.id, form);
+      await apiClient.entities.Turf.update(turf.id, form);
     } else {
-      await base44.entities.Turf.create(form);
+      await apiClient.entities.Turf.create(form);
     }
     setSaving(false);
     onSaved();

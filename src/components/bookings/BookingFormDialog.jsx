@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
 
 function calcPrice(turf, date, startHour, endHour) {
@@ -72,9 +72,9 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
       duration_hours: form.end_hour - form.start_hour,
     };
     if (isEdit) {
-      await base44.entities.Booking.update(booking.id, data);
+      await apiClient.entities.Booking.update(booking.id, data);
     } else {
-      await base44.entities.Booking.create(data);
+      await apiClient.entities.Booking.create(data);
     }
     setSaving(false);
     onSaved();

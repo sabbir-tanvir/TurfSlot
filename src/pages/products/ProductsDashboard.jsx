@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,11 +39,11 @@ export default function ProductsDashboard() {
 
   const { data: products = [], isLoading: lp } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Product.list("-created_date", 500),
   });
   const { data: orders = [], isLoading: lo } = useQuery({
     queryKey: ["orders"],
-    queryFn: () => base44.entities.Order.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Order.list("-created_date", 500),
   });
 
   const isLoading = lp || lo;

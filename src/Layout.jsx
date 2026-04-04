@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import {
   LayoutDashboard, Calendar, MapPin, CreditCard, Users,
   Trophy, Menu, X, LogOut, ChevronDown, Bell, ArrowLeftRight
@@ -25,7 +25,7 @@ export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    apiClient.auth.me().then(setUser).catch(() => {});
   }, []);
 
   if (currentPageName === "PublicBooking") {
@@ -145,7 +145,7 @@ export default function Layout({ children, currentPageName }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => base44.auth.logout()}>
+                <DropdownMenuItem onClick={() => apiClient.auth.logout()}>
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

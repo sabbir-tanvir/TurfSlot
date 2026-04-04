@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ export default function ProductsList() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list("-created_date"),
+    queryFn: () => apiClient.entities.Product.list("-created_date"),
   });
 
   const categories = ["all", ...new Set(products.map((p) => p.category).filter(Boolean))];
@@ -48,7 +48,7 @@ export default function ProductsList() {
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this product?")) return;
-    await base44.entities.Product.delete(id);
+    await apiClient.entities.Product.delete(id);
     queryClient.invalidateQueries({ queryKey: ["products"] });
   };
 

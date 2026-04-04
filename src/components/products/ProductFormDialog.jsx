@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
 
 const CATEGORIES = ["food", "beverage", "clothing", "medicine", "equipment", "accessories", "other"];
@@ -28,7 +28,7 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSaved
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await apiClient.integrations.Core.UploadFile({ file });
     set("image_url", file_url);
     setUploading(false);
   };
@@ -36,9 +36,9 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSaved
   const handleSave = async () => {
     setSaving(true);
     if (isEdit) {
-      await base44.entities.Product.update(product.id, form);
+      await apiClient.entities.Product.update(product.id, form);
     } else {
-      await base44.entities.Product.create(form);
+      await apiClient.entities.Product.create(form);
     }
     setSaving(false);
     onSaved();

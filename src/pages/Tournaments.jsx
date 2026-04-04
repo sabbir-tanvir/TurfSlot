@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +35,11 @@ export default function Tournaments() {
 
   const { data: tournaments = [], isLoading } = useQuery({
     queryKey: ["tournaments"],
-    queryFn: () => base44.entities.Tournament.list("-created_date"),
+    queryFn: () => apiClient.entities.Tournament.list("-created_date"),
   });
   const { data: turfs = [] } = useQuery({
     queryKey: ["turfs"],
-    queryFn: () => base44.entities.Turf.list(),
+    queryFn: () => apiClient.entities.Turf.list(),
   });
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -47,7 +47,7 @@ export default function Tournaments() {
   const handleSave = async () => {
     setSaving(true);
     const t = turfs.find((t) => t.id === form.turf_id);
-    await base44.entities.Tournament.create({ ...form, turf_name: t?.name || "" });
+    await apiClient.entities.Tournament.create({ ...form, turf_name: t?.name || "" });
     setSaving(false);
     setShowForm(false);
     queryClient.invalidateQueries({ queryKey: ["tournaments"] });

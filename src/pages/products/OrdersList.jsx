@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,11 +36,11 @@ export default function OrdersList() {
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["orders"],
-    queryFn: () => base44.entities.Order.list("-created_date", 500),
+    queryFn: () => apiClient.entities.Order.list("-created_date", 500),
   });
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list("-created_date"),
+    queryFn: () => apiClient.entities.Product.list("-created_date"),
   });
 
   const filtered = orders.filter((o) => {
