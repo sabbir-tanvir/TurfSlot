@@ -54,6 +54,8 @@ import Payments from './pages/Payments';
 import Customers from './pages/Customers';
 import Tournaments from './pages/Tournaments';
 import PublicBooking from './pages/PublicBooking';
+import Login from './pages/Login';
+import Users from './pages/Users';
 import __Layout from './Layout.jsx';
 
 
@@ -65,6 +67,8 @@ export const PAGES = {
     "Customers": Customers,
     "Tournaments": Tournaments,
     "PublicBooking": PublicBooking,
+    "Login": Login,
+    "Users": Users,
 }
 
 export const pagesConfig = {

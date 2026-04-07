@@ -32,14 +32,15 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await apiClient.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null);
       setIsLoadingAuth(false);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
+      // If user auth fails and we are not on the login page, set auth error
+      if ((error.status === 401 || error.status === 403) && window.location.pathname !== '/Login') {
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
@@ -51,17 +52,16 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    apiClient.auth.logout();
     
     if (shouldRedirect) {
-      window.location.href = '/';
+      window.location.href = '/Login';
       return;
     }
-
-    apiClient.auth.logout();
   };
 
   const navigateToLogin = () => {
-    window.location.href = '/';
+    window.location.href = '/Login';
   };
 
   return (

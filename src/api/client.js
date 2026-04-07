@@ -1,110 +1,88 @@
-const createMemoryStore = () => ({
-  Product: [],
-  Order: [],
-  Booking: [],
-  Turf: [],
-  Tournament: [],
-  Payment: []
-});
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const store = createMemoryStore();
-
-const makeId = () => {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
-const sortRows = (rows, sortBy) => {
-  if (!sortBy || typeof sortBy !== "string") {
-    return [...rows];
+const handleResponse = async (response) => {
+  const data = await response.json();
+  if (!response.ok) {
+    const error = (data && data.error) || response.statusText;
+    throw new Error(error);
   }
-  const isDesc = sortBy.startsWith("-");
-  const field = isDesc ? sortBy.slice(1) : sortBy;
-  return [...rows].sort((a, b) => {
-    const av = a?.[field];
-    const bv = b?.[field];
-    if (av === bv) return 0;
-    if (av == null) return 1;
-    if (bv == null) return -1;
-    if (av > bv) return isDesc ? -1 : 1;
-    return isDesc ? 1 : -1;
-  });
+  return data.data;
 };
 
-const entityApi = (entityName) => ({
-  list: async (sortBy, limit) => {
-    const rows = sortRows(store[entityName] ?? [], sortBy);
-    if (typeof limit === "number") {
-      return rows.slice(0, limit);
-    }
-    return rows;
+const entityApi = (endpoint) => ({
+  list: async (sort, limit) => {
+    let url = `${API_URL}/${endpoint}`;
+    const params = new URLSearchParams();
+    if (sort) params.append('sort', sort);
+    if (limit) params.append('limit', limit);
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const res = await fetch(url, { headers: getAuthHeader() });
+    return handleResponse(res);
   },
-  create: async (payload = {}) => {
-    const record = {
-      id: makeId(),
-      created_date: new Date().toISOString(),
-      ...payload
-    };
-    store[entityName].unshift(record);
-    return record;
+  get: async (id) => {
+    const res = await fetch(`${API_URL}/${endpoint}/${id}`, { headers: getAuthHeader() });
+    return handleResponse(res);
   },
-  update: async (id, updates = {}) => {
-    const idx = store[entityName].findIndex((r) => r.id === id);
-    if (idx === -1) {
-      throw new Error(`${entityName} with id ${id} not found`);
-    }
-    const updated = { ...store[entityName][idx], ...updates };
-    store[entityName][idx] = updated;
-    return updated;
+  create: async (payload) => {
+    const res = await fetch(`${API_URL}/${endpoint}`, {
+      method: 'POST',
+      headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(res);
+  },
+  update: async (id, payload) => {
+    const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(res);
   },
   delete: async (id) => {
-    const idx = store[entityName].findIndex((r) => r.id === id);
-    if (idx !== -1) {
-      store[entityName].splice(idx, 1);
-    }
-    return { success: true };
-  }
-});
-
-const getDefaultUser = () => ({
-  id: "local-user",
-  full_name: "Local Admin",
-  email: "local@turfslot.dev",
-  role: "admin"
-});
-
-const auth = {
-  me: async () => getDefaultUser(),
-  logout: () => {
-    return Promise.resolve();
+    const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeader(),
+    });
+    return handleResponse(res);
   },
-  redirectToLogin: () => {
-    return Promise.resolve();
-  }
-};
-
-const integrations = {
-  Core: {
-    UploadFile: async ({ file }) => {
-      return {
-        file_url: file ? URL.createObjectURL(file) : ""
-      };
-    }
-  }
-};
+});
 
 export const apiClient = {
-  auth,
-  integrations,
+  auth: {
+    me: async () => {
+      const res = await fetch(`${API_URL}/auth/me`, { headers: getAuthHeader() });
+      return handleResponse(res);
+    },
+    login: async (email, password) => {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      localStorage.setItem('token', data.token);
+      return data.user;
+    },
+    logout: () => {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    },
+  },
   entities: {
-    Product: entityApi("Product"),
-    Order: entityApi("Order"),
-    Booking: entityApi("Booking"),
-    Turf: entityApi("Turf"),
-    Tournament: entityApi("Tournament"),
-    Payment: entityApi("Payment")
-  }
+    Product: entityApi('products'),
+    Order: entityApi('orders'),
+    Booking: entityApi('bookings'),
+    Turf: entityApi('turfs'),
+    Tournament: entityApi('tournaments'),
+    Payment: entityApi('payments'),
+    User: entityApi('users'),
+  },
 };
-

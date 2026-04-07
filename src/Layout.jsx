@@ -17,6 +17,7 @@ const navItems = [
   { name: "Bookings", icon: Calendar, page: "Bookings" },
   { name: "Payments", icon: CreditCard, page: "Payments" },
   { name: "Customers", icon: Users, page: "Customers" },
+  { name: "Users", icon: Users, page: "Users" },
   { name: "Tournaments", icon: Trophy, page: "Tournaments" },
 ];
 
