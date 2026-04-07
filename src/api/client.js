@@ -8,8 +8,10 @@ const getAuthHeader = () => {
 const handleResponse = async (response) => {
   const data = await response.json();
   if (!response.ok) {
-    const error = (data && data.error) || response.statusText;
-    throw new Error(error);
+    const errorMsg = (data && data.error) || response.statusText;
+    const error = new Error(errorMsg);
+    error.status = response.status;
+    throw error;
   }
   return data.data;
 };
@@ -85,4 +87,18 @@ export const apiClient = {
     Payment: entityApi('payments'),
     User: entityApi('users'),
   },
+  integrations: {
+    Core: {
+      UploadFile: async ({ file }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${API_URL}/upload`, {
+          method: 'POST',
+          headers: getAuthHeader(),
+          body: formData,
+        });
+        return handleResponse(res);
+      }
+    }
+  }
 };

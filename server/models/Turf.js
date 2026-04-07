@@ -13,6 +13,7 @@ const turfSchema = new mongoose.Schema({
   },
   size: String,
   location: String,
+  description: String,
   image_url: String,
   status: {
     type: String,
@@ -56,6 +57,17 @@ const turfSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+      ret.id = ret._id;
+      ret.created_date = ret.createdAt;
+      return ret;
+    }
+  },
+  toObject: { virtuals: true }
 });
 
 const Turf = mongoose.model('Turf', turfSchema);

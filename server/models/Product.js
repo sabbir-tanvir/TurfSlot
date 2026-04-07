@@ -33,6 +33,7 @@ const productSchema = new mongoose.Schema({
     default: 'active',
   },
   image_url: String,
+  description: String,
   low_stock_alert: {
     type: Number,
     default: 5,
@@ -41,6 +42,17 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+      ret.id = ret._id;
+      ret.created_date = ret.createdAt;
+      return ret;
+    }
+  },
+  toObject: { virtuals: true }
 });
 
 const Product = mongoose.model('Product', productSchema);

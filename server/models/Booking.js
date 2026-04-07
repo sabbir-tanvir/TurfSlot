@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
-  turf: {
+  turf_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Turf',
     required: true,
@@ -49,10 +49,22 @@ const bookingSchema = new mongoose.Schema({
     default: 'bkash',
   },
   notes: String,
+  txn_id: String,
   createdAt: {
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+      ret.id = ret._id;
+      ret.created_date = ret.createdAt;
+      return ret;
+    }
+  },
+  toObject: { virtuals: true }
 });
 
 const Booking = mongoose.model('Booking', bookingSchema);

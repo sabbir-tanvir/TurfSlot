@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,14 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { checkAppState } = useAuth();
+  const { checkAppState, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +28,8 @@ export default function Login() {
     try {
       await apiClient.auth.login(email, password);
       toast.success("Welcome back!");
-      await checkAppState(); // Re-check auth state to redirect
+      await checkAppState(); // Re-check auth state
+      navigate("/"); // Manually trigger navigation
     } catch (error) {
       toast.error(error.message || "Invalid credentials");
     } finally {

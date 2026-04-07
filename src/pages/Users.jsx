@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Users, UserPlus, Search, Shield, Mail, Trash2, 
-  MoreVertical, Edit, Loader2, CheckCircle2 
+  MoreVertical, Edit, Loader2, CheckCircle2, Camera 
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -23,7 +23,8 @@ export default function UsersManagement() {
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ full_name: "", email: "", password: "", role: "user" });
+  const [formData, setFormData] = useState({ full_name: "", email: "", password: "", role: "user", image_url: "", image_public_id: "" });
+  const [uploading, setUploading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -41,7 +42,7 @@ export default function UsersManagement() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setIsDialogOpen(false);
       setEditingUser(null);
-      setFormData({ full_name: "", email: "", password: "", role: "user" });
+      setFormData({ full_name: "", email: "", password: "", role: "user", image_url: "", image_public_id: "" });
       toast.success(editingUser ? "User updated" : "User created");
     },
     onError: (error) => toast.error(error.message),
@@ -64,17 +65,38 @@ export default function UsersManagement() {
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({ 
-      full_name: user.full_name, 
+      full_name: user.full_name || "",
       email: user.email, 
       password: "", 
-      role: user.role 
+      role: user.role,
+      image_url: user.image_url || "",
+      image_public_id: user.image_public_id || ""
     });
     setIsDialogOpen(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    const payload = { ...formData };
+    if (editingUser && (payload.password === "" || !payload.password)) {
+      delete payload.password;
+    }
+    mutation.mutate(payload);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url, public_id } = await apiClient.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, image_url: file_url, image_public_id: public_id }));
+      toast.success("Photo uploaded");
+    } catch (err) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -112,8 +134,12 @@ export default function UsersManagement() {
             <div className="p-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
-                    {user.full_name?.[0]?.toUpperCase()}
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg overflow-hidden border border-emerald-100">
+                    {user.image_url ? (
+                      <img src={user.image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      user.full_name?.[0]?.toUpperCase()
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 truncate max-w-[150px]">
@@ -218,6 +244,34 @@ export default function UsersManagement() {
                   <SelectItem value="admin">Administrator</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Profile Photo</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative group w-16 h-16 rounded-2xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+                  {formData.image_url ? (
+                    <img src={formData.image_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-gray-300" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload}
+                    className="cursor-pointer text-xs"
+                    disabled={uploading}
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                </div>
+              </div>
             </div>
               <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8" disabled={mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingUser ? "Save Changes" : "Create User")}

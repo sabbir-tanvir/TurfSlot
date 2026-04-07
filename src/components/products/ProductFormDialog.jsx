@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const CATEGORIES = ["food", "beverage", "clothing", "medicine", "equipment", "accessories", "other"];
 const UNITS = ["pcs", "kg", "g", "litre", "ml", "box", "pack", "dozen"];
 
 const defaults = {
   name: "", category: "other", description: "", price: 0, cost_price: 0,
-  stock: 0, low_stock_alert: 5, unit: "pcs", sku: "", status: "active", image_url: "",
+  stock: 0, low_stock_alert: 5, unit: "pcs", sku: "", status: "active", image_url: "", image_public_id: "",
 };
 
 export default function ProductFormDialog({ open, onOpenChange, product, onSaved }) {
@@ -22,27 +23,65 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSaved
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      if (product) {
+        const sanitizedProduct = { ...defaults };
+        Object.keys(defaults).forEach(key => {
+          if (product[key] !== undefined && product[key] !== null) {
+            sanitizedProduct[key] = product[key];
+          }
+        });
+        setForm(sanitizedProduct);
+      } else {
+        setForm(defaults);
+      }
+    }
+  }, [product, open]);
+
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await apiClient.integrations.Core.UploadFile({ file });
-    set("image_url", file_url);
-    setUploading(false);
+    try {
+      const { file_url, public_id } = await apiClient.integrations.Core.UploadFile({ file });
+      setForm(prev => ({ ...prev, image_url: file_url, image_public_id: public_id }));
+      toast.success("Image uploaded successfully");
+    } catch (err) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
-    if (isEdit) {
-      await apiClient.entities.Product.update(product.id, form);
-    } else {
-      await apiClient.entities.Product.create(form);
+    try {
+      const {
+        name, category, description, price, cost_price, stock, low_stock_alert,
+        unit, sku, status, image_url, image_public_id
+      } = form;
+      const payload = {
+        name, category, description, price, cost_price, stock, low_stock_alert,
+        unit, sku, status, image_url, image_public_id
+      };
+
+      if (isEdit) {
+        await apiClient.entities.Product.update(product.id, payload);
+        toast.success("Product updated successfully");
+      } else {
+        await apiClient.entities.Product.create(payload);
+        toast.success("Product created successfully");
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to save product");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   return (

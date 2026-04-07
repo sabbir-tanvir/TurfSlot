@@ -6,7 +6,7 @@ const tournamentSchema = new mongoose.Schema({
     required: [true, 'Please add a tournament name'],
     trim: true,
   },
-  turf: {
+  turf_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Turf',
     required: true,
@@ -53,6 +53,17 @@ const tournamentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+      ret.id = ret._id;
+      ret.created_date = ret.createdAt;
+      return ret;
+    }
+  },
+  toObject: { virtuals: true }
 });
 
 const Tournament = mongoose.model('Tournament', tournamentSchema);

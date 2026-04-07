@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { apiClient } from "@/api/client";
+import { useAuth } from "@/lib/AuthContext";
 import {
   LayoutDashboard, Calendar, MapPin, CreditCard, Users,
-  Trophy, Menu, X, LogOut, ChevronDown, Bell, ArrowLeftRight
+  Trophy, Menu, LogOut, ChevronDown, Bell, ArrowLeftRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,14 +23,19 @@ const navItems = [
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    apiClient.auth.me().then(setUser).catch(() => {});
-  }, []);
+  const { user, isAuthenticated, logout, isLoadingAuth } = useAuth();
 
   if (currentPageName === "PublicBooking") {
     return <>{children}</>;
+  }
+
+  // If not authenticated and not loading, only show content (to prevent sidebar flash on login/public pages)
+  if (!isAuthenticated && !isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        {children}
+      </div>
+    );
   }
 
   return (
@@ -106,10 +111,14 @@ export default function Layout({ children, currentPageName }) {
         <div className="p-3 border-t border-gray-100">
           {user && (
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                <span className="text-emerald-700 text-xs font-semibold">
-                  {user.full_name?.[0] || user.email?.[0]?.toUpperCase() || "U"}
-                </span>
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center shrink-0">
+                {user.image_url ? (
+                  <img src={user.image_url} alt={user.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-emerald-700 text-xs font-semibold">
+                    {user.full_name?.[0] || user.email?.[0]?.toUpperCase() || "U"}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{user.full_name || "User"}</p>
@@ -135,18 +144,29 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Notification button commented out as requested
             <Button variant="ghost" size="icon" className="relative text-gray-400 hover:text-gray-600">
               <Bell className="w-[18px] h-[18px]" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full" />
             </Button>
+            */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-gray-500 gap-1">
-                  <ChevronDown className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-gray-500 gap-1 hover:bg-gray-100">
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-50 flex items-center justify-center">
+                    {user?.image_url ? (
+                      <img src={user.image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-emerald-600">
+                        {user?.full_name?.[0] || "U"}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronDown className="w-4 h-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => apiClient.auth.logout()}>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-600 cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

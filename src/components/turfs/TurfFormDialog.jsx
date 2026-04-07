@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const defaults = {
-  name: "", type: "5-a-side", size: "", location: "", image_url: "",
+  name: "", type: "5-a-side", size: "", location: "", image_url: "", image_public_id: "",
   status: "active", base_price: 2000, peak_price: 3000, night_price: 2500,
   opening_hour: 6, closing_hour: 23, peak_hours_start: 17, peak_hours_end: 21,
   weekend_multiplier: 1.2, amenities: [],
@@ -22,27 +23,57 @@ export default function TurfFormDialog({ open, onOpenChange, turf, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setForm(turf ? { ...defaults, ...turf } : defaults);
+    }
+  }, [turf, open]);
+
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await apiClient.integrations.Core.UploadFile({ file });
-    set("image_url", file_url);
-    setUploading(false);
+    try {
+      const { file_url, public_id } = await apiClient.integrations.Core.UploadFile({ file });
+      setForm(prev => ({ ...prev, image_url: file_url, image_public_id: public_id }));
+      toast.success("Image uploaded successfully");
+    } catch (err) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
-    if (isEdit) {
-      await apiClient.entities.Turf.update(turf.id, form);
-    } else {
-      await apiClient.entities.Turf.create(form);
+    try {
+      const {
+        name, type, size, location, image_url, image_public_id, status, base_price, peak_price,
+        night_price, opening_hour, closing_hour, peak_hours_start, peak_hours_end,
+        weekend_multiplier, amenities
+      } = form;
+      const payload = {
+        name, type, size, location, image_url, image_public_id, status, base_price, peak_price,
+        night_price, opening_hour, closing_hour, peak_hours_start, peak_hours_end,
+        weekend_multiplier, amenities
+      };
+
+      if (isEdit) {
+        await apiClient.entities.Turf.update(turf.id, payload);
+        toast.success("Turf updated successfully");
+      } else {
+        await apiClient.entities.Turf.create(payload);
+        toast.success("Turf created successfully");
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to save turf");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   return (

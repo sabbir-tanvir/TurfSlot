@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/api/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 function calcPrice(turf, date, startHour, endHour) {
   if (!turf || !date) return 0;
@@ -33,13 +34,28 @@ function calcPrice(turf, date, startHour, endHour) {
 
 export default function BookingFormDialog({ open, onOpenChange, turfs, existingBookings, onSaved, booking }) {
   const isEdit = !!booking;
-  const [form, setForm] = useState(booking || {
+  const [form, setForm] = useState({
     turf_id: "", customer_name: "", customer_phone: "", customer_email: "",
     date: new Date().toISOString().split("T")[0],
     start_hour: 17, end_hour: 18, status: "confirmed", payment_status: "unpaid",
     payment_method: "bkash", notes: "", is_recurring: false, promo_code: "",
+    txn_id: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const defaults = useMemo(() => ({
+    turf_id: "", customer_name: "", customer_phone: "", customer_email: "",
+    date: new Date().toISOString().split("T")[0],
+    start_hour: 17, end_hour: 18, status: "confirmed", payment_status: "unpaid",
+    payment_method: "bkash", notes: "", is_recurring: false, promo_code: "",
+    txn_id: "",
+  }), []);
+
+  useEffect(() => {
+    if (open) {
+      setForm(booking ? { ...defaults, ...booking } : defaults);
+    }
+  }, [booking, open, defaults]);
 
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -48,37 +64,62 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
     ? Array.from({ length: (selectedTurf.closing_hour || 23) - (selectedTurf.opening_hour || 6) }, (_, i) => i + (selectedTurf.opening_hour || 6))
     : Array.from({ length: 17 }, (_, i) => i + 6);
 
+  const isHourBooked = (h) => {
+    if (!form.turf_id || !form.date) return false;
+    return existingBookings.some((b) => {
+      // Handle turf_id being either a string ID or a populated object
+      const b_turf_id = (typeof b.turf_id === 'object' ? (b.turf_id?._id || b.turf_id?.id) : b.turf_id);
+      
+      // Ensure date comparison is robust (only the YYYY-MM-DD part)
+      const b_date = b.date?.split('T')[0];
+      const f_date = form.date?.split('T')[0];
+
+      return (
+        b.id !== booking?.id &&
+        b_turf_id === form.turf_id &&
+        b_date === f_date &&
+        b.status !== "cancelled" &&
+        h >= b.start_hour &&
+        h < b.end_hour
+      );
+    });
+  };
+
   const totalPrice = useMemo(
     () => calcPrice(selectedTurf, form.date, form.start_hour, form.end_hour),
     [selectedTurf, form.date, form.start_hour, form.end_hour]
   );
 
-  const conflicting = existingBookings.some(
-    (b) =>
-      b.id !== booking?.id &&
-      b.turf_id === form.turf_id &&
-      b.date === form.date &&
-      b.status !== "cancelled" &&
-      form.start_hour < b.end_hour &&
-      form.end_hour > b.start_hour
-  );
+  const conflicting = useMemo(() => {
+    for (let h = form.start_hour; h < form.end_hour; h++) {
+      if (isHourBooked(h)) return true;
+    }
+    return false;
+  }, [form.turf_id, form.date, form.start_hour, form.end_hour, existingBookings, booking?.id]);
 
   const handleSave = async () => {
     setSaving(true);
-    const data = {
-      ...form,
-      turf_name: selectedTurf?.name || "",
-      total_price: totalPrice,
-      duration_hours: form.end_hour - form.start_hour,
-    };
-    if (isEdit) {
-      await apiClient.entities.Booking.update(booking.id, data);
-    } else {
-      await apiClient.entities.Booking.create(data);
+    try {
+      const data = {
+        ...form,
+        turf_name: selectedTurf?.name || "",
+        total_price: totalPrice,
+        duration_hours: form.end_hour - form.start_hour,
+      };
+      if (isEdit) {
+        await apiClient.entities.Booking.update(booking.id, data);
+        toast.success("Booking updated successfully");
+      } else {
+        await apiClient.entities.Booking.create(data);
+        toast.success("Booking created successfully");
+      }
+      onSaved();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to save booking");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    onSaved();
-    onOpenChange(false);
   };
 
   return (
@@ -123,9 +164,14 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
               <Select value={String(form.start_hour)} onValueChange={(v) => set("start_hour", Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {hours.map((h) => (
-                    <SelectItem key={h} value={String(h)}>{h}:00</SelectItem>
-                  ))}
+                  {hours.map((h) => {
+                    const booked = isHourBooked(h);
+                    return (
+                      <SelectItem key={h} value={String(h)} disabled={booked}>
+                        {h}:00 {booked ? "(Booked)" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -134,9 +180,21 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
               <Select value={String(form.end_hour)} onValueChange={(v) => set("end_hour", Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {hours.filter((h) => h > form.start_hour).map((h) => (
-                    <SelectItem key={h} value={String(h)}>{h}:00</SelectItem>
-                  ))}
+                  {hours.filter((h) => h > form.start_hour).map((h) => {
+                    // Check if any hour between start and this end is booked
+                    let hasBookedSlot = false;
+                    for (let i = form.start_hour; i < h; i++) {
+                      if (isHourBooked(i)) {
+                        hasBookedSlot = true;
+                        break;
+                      }
+                    }
+                    return (
+                      <SelectItem key={h} value={String(h)} disabled={hasBookedSlot}>
+                        {h}:00 {hasBookedSlot ? "(Unavailable)" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -166,7 +224,7 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
               </Select>
             </div>
             <div>
-              <Label>Payment</Label>
+              <Label>Payment Status</Label>
               <Select value={form.payment_status} onValueChange={(v) => set("payment_status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -177,17 +235,30 @@ export default function BookingFormDialog({ open, onOpenChange, turfs, existingB
               </Select>
             </div>
           </div>
-          <div>
-            <Label>Payment Method</Label>
-            <Select value={form.payment_method} onValueChange={(v) => set("payment_method", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["bkash", "nagad", "rocket", "cash", "card", "other"].map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
+          {["paid", "partial"].includes(form.payment_status) && (
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+              <div>
+                <Label>Payment Method</Label>
+                <Select value={form.payment_method} onValueChange={(v) => set("payment_method", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["bkash", "nagad", "rocket", "cash", "card", "other"].map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Transaction ID (TxnID)</Label>
+                <Input
+                  value={form.txn_id || ""}
+                  onChange={(e) => set("txn_id", e.target.value)}
+                  placeholder="e.g. 8K7L9M0"
+                />
+              </div>
+            </div>
+          )}
           <div>
             <Label>Notes</Label>
             <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Any special requests..." />

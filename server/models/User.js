@@ -28,10 +28,29 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  image_url: String,
+  image_public_id: String,
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active',
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+      ret.id = ret._id;
+      ret.created_date = ret.createdAt;
+      delete ret.password;
+      return ret;
+    }
+  },
+  toObject: { virtuals: true }
 });
 
 // Encrypt password using bcrypt

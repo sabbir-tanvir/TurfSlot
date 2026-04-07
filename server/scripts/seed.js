@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import Turf from '../models/Turf.js';
 import Product from '../models/Product.js';
+import Booking from '../models/Booking.js';
+import Payment from '../models/Payment.js';
 
 dotenv.config();
 
@@ -16,11 +18,13 @@ const seedData = async () => {
     await User.deleteMany();
     await Turf.deleteMany();
     await Product.deleteMany();
+    await Booking.deleteMany();
+    await Payment.deleteMany();
 
     // Create Admin User
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
-    
+
     await User.create({
       full_name: 'Local Admin',
       email: 'admin@turfslot.com',
@@ -54,6 +58,50 @@ const seedData = async () => {
       }
     ]);
 
+    // Create Sample Bookings
+    const today = new Date().toISOString().split('T')[0];
+    const bookings = await Booking.create([
+      {
+        turf_id: turfs[0]._id,
+        turf_name: turfs[0].name,
+        customer_name: 'Sabbir Tanvir',
+        customer_phone: '01712345678',
+        date: today,
+        start_hour: 17,
+        end_hour: 18,
+        total_price: 3000,
+        status: 'confirmed',
+        payment_status: 'paid',
+        payment_method: 'bkash'
+      },
+      {
+        turf_id: turfs[1]._id,
+        turf_name: turfs[1].name,
+        customer_name: 'Tanvir Mahtab',
+        customer_phone: '01887654321',
+        date: today,
+        start_hour: 20,
+        end_hour: 21,
+        total_price: 5000,
+        status: 'confirmed',
+        payment_status: 'unpaid',
+        payment_method: 'cash'
+      }
+    ]);
+
+    // Create Sample Payments
+    await Payment.create([
+      {
+        booking_id: bookings[0]._id,
+        amount: 3000,
+        method: 'bkash',
+        status: 'completed',
+        transaction_id: 'TRX_889922',
+        customer_name: 'Sabbir Tanvir',
+        customer_phone: '01712345678'
+      }
+    ]);
+
     // Create Sample Products
     await Product.create([
       {
@@ -74,7 +122,7 @@ const seedData = async () => {
       }
     ]);
 
-    console.log('✅ Data Seeded Successfully');
+    console.log('✅ Data Seeded Successfully with Bookings and Payments!');
     process.exit();
   } catch (err) {
     console.error(err);
